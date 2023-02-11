@@ -1,4 +1,5 @@
 import re
+import datetime
 
 
 class MessageData(object):
@@ -9,14 +10,14 @@ class MessageData(object):
         self._regex_object = None
         self._date = ""
         self._time = ""
-        self._poster = ""
+        self._author = ""
         self._message = ""
 
     @property
     def regex_object(self):
         if not self._regex_object:
             self._regex_object = re.match(r"(?P<date>\d\d/\d\d/\d\d\d\d), (?P<time>\d\d:\d\d) - "
-                                          r"(?P<poster>[\w]*:|[\w]* [\w']*:)?(?P<message>.*?)$",
+                                          r"(?P<author>[\w]*:|[\w]* [\w']*:)?(?P<message>.*?)$",
                                           self._raw_string)
         return self._regex_object
 
@@ -27,11 +28,15 @@ class MessageData(object):
     @property
     def date(self):
         if not self._date:
-            self._date = self.regex_object.group("date")
+            raw_date = self.regex_object.group("date").split("/")
+            self._date = datetime.date(int(raw_date[2]), int(raw_date[1]), int(raw_date[0]))
         return self._date
 
     @date.setter
     def date(self, value):
+        if not isinstance(value, datetime.date):
+            print(f"Date property must be a valid date object, {value} is {type(value)}")
+            return
         self._date = value
 
     @property
@@ -45,14 +50,14 @@ class MessageData(object):
         self._time = value
 
     @property
-    def poster(self):
-        if not self._poster:
-            self._poster = self.regex_object.group("poster")
-        return self._poster
+    def author(self):
+        if not self._author:
+            self._author = self.regex_object.group("author")
+        return self._author
 
-    @poster.setter
-    def poster(self, value):
-        self._poster = value
+    @author.setter
+    def author(self, value):
+        self._author = value
 
     @property
     def message(self):
@@ -73,29 +78,29 @@ def get_messagedata(file_path):
             if not line.strip():
                 continue
             message_block += line.strip()
-            # current_message = MessageData(line)
-            # messages.append(current_message)
     messages = re.findall(r"(\d\d/\d\d/\d\d\d\d.*?)\d\d/\d\d/\d\d\d\d", message_block)
     return [MessageData(message) for message in messages]
 
 
 def get_post_counts(message_datas):
     """ Get a dictionary mapping the name of each poster to the number of times they posted """
-    poster_to_count = {}
+    author_to_count = {}
     for message in message_datas:
-        if message.poster not in poster_to_count.keys():
-            poster_to_count[message.poster] = 1
-        else:
-            poster_to_count[message.poster] += 1
+        if not message.author:
+            # skip system messages
+            continue
+        if message.author not in author_to_count.keys():
+            author_to_count[message.author] = 1
+        author_to_count[message.author] += 1
     # sort the dict by the post count
-    return {key: value for key, value in sorted(poster_to_count.items(), key=lambda item: item[1])}
+    return {key: value for key, value in reversed(sorted(author_to_count.items(), key=lambda item: item[1]))}
 
 
 def get_system_messages(message_datas):
-    """ Get messages that have no poster, meaning they're some kind of system message """
+    """ Get messages that have no author, meaning they're some kind of system message """
     system_messages = []
     for message in message_datas:
-        if message.poster:
+        if message.author:
             continue
         system_messages.append(message.message)
     return system_messages
@@ -115,10 +120,25 @@ def get_unique_group_names(system_messages):
     return group_names
 
 
+def get_messages_per_day(message_datas):
+    date_to_count = {}
+    for message in message_datas:
+        if not message.author:
+            # skip system messages
+            continue
+        if message.date not in date_to_count.keys():
+            date_to_count[message.date] = 1
+        date_to_count[message.date] += 1
+    # sort the dict by the post count
+    return {key: value for key, value in reversed(sorted(date_to_count.items(), key=lambda item: item[1]))}
+
+
 def main(file_path):
     messages = get_messagedata(file_path)
     sys_msgs = get_system_messages(messages)
     unique_names = get_unique_group_names(get_system_messages(messages))
+    messages_per_day = get_messages_per_day(messages)
+    post_counts = get_post_counts(messages)
     print("done")
 
 
