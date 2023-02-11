@@ -1,5 +1,5 @@
 import re
-import datetime
+from datetime import date, time
 
 
 class MessageData(object):
@@ -28,13 +28,13 @@ class MessageData(object):
     @property
     def date(self):
         if not self._date:
-            raw_date = self.regex_object.group("date").split("/")
-            self._date = datetime.date(int(raw_date[2]), int(raw_date[1]), int(raw_date[0]))
+            day, month, year = self.regex_object.group("date").split("/")
+            self._date = date(int(year), int(month), int(day))
         return self._date
 
     @date.setter
     def date(self, value):
-        if not isinstance(value, datetime.date):
+        if not isinstance(value, date):
             print(f"Date property must be a valid date object, {value} is {type(value)}")
             return
         self._date = value
@@ -42,11 +42,15 @@ class MessageData(object):
     @property
     def time(self):
         if not self._time:
-            self._time = self.regex_object.group("time")
+            hour, minute = self.regex_object.group("time").split(":")
+            self._time = time(int(hour), int(minute))
         return self._time
 
     @time.setter
     def time(self, value):
+        if not isinstance(value, time):
+            print(f"Time property must be a valid time object, {value} is {type(value)}")
+            return
         self._time = value
 
     @property
@@ -108,6 +112,7 @@ def get_system_messages(message_datas):
 
 def get_unique_group_names(system_messages):
     """ Get the unique names that the group has had """
+    # TODO: sort these chronologically
     group_names = set()
     for message in system_messages:
         # TODO make this less shit, don't use string contains checks, do some regex or something
