@@ -138,12 +138,24 @@ def get_messages_per_day(message_datas):
     return {key: value for key, value in reversed(sorted(date_to_count.items(), key=lambda item: item[1]))}
 
 
+def get_average_busiest_hour(message_datas):
+    hour_to_count = {}
+    for message in message_datas:
+        if not message.time:
+            continue
+        if message.time.hour not in hour_to_count:
+            hour_to_count[message.time.hour] = 1
+        hour_to_count[message.time.hour] += 1
+    return {key: value for key, value in reversed(sorted(hour_to_count.items(), key=lambda item: item[1]))}
+
+
 def main(file_path):
     messages = get_messagedata(file_path)
     sys_msgs = get_system_messages(messages)
     unique_names = get_unique_group_names(get_system_messages(messages))
     messages_per_day = get_messages_per_day(messages)
     post_counts = get_post_counts(messages)
+    hour_counts = get_average_busiest_hour(messages)
     print("done")
 
 
