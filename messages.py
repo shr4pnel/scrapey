@@ -83,13 +83,9 @@ def get_messagedata(file_path):
     """
     message_block = ""
     with open(file_path, "r", encoding="utf8") as file:
-        data = file.readlines()
-        for line in data:
-            if not line.strip():
-                # skip empty lines
-                continue
-            message_block += line.strip()
-    messages = re.findall(r"(\d\d/\d\d/\d\d\d\d.*?)\d\d/\d\d/\d\d\d\d", message_block)
+        # read file as one continuous string file.readlines() is inappropriate as it wont handle multi-line messages
+        data = file.read().replace("\n", "")
+    messages = re.findall(r"(\d\d/\d\d/\d\d\d\d.*?)\d\d/\d\d/\d\d\d\d", data)
     return [MessageData(message) for message in messages]
 
 
@@ -104,7 +100,7 @@ def get_system_messages(message_datas):
     for message in message_datas:
         if message.author:
             continue
-        system_messages.append(message.message)
+        system_messages.append(message)
     return system_messages
 
 
@@ -115,17 +111,16 @@ def get_unique_group_names(system_messages):
     :return: set of names the group has had
     :rtype: set
     """
-    # TODO: sort these chronologically
-    group_names = set()
+    group_names = []
+    # sort the system messages chronologically
+    system_messages = [sys_message for sys_message in sorted(system_messages, key=lambda item: item.date)]
     for message in system_messages:
-        # TODO make this less shit, don't use string contains checks, do some regex or something
-        if "\"" not in message:
+        if "changed the subject from" not in message.message:
+            # skip any system messages that aren't related to changing the group subject (name)
             continue
-        if "from" not in message:
-            continue
-        name_from, name_to = message.split("\"")[1], message.split("\"")[3]
-        [group_names.add(name) for name in [name_from, name_to]]
-    return group_names
+        name_from, name_to = message.message.split("\"")[1], message.message.split("\"")[3]
+        [group_names.append(name) for name in [name_from, name_to]]
+    return list(group_names)
 
 
 def get_messages_per_day(message_datas):
@@ -169,3 +164,9 @@ def get_property_to_count(prop, iterable, condition_property=None):
             property_to_count[getattr(item, prop)] = 1
         property_to_count[getattr(item, prop)] += 1
     return {key: value for key, value in reversed(sorted(property_to_count.items(), key=lambda item: item[1]))}
+
+
+if __name__ == "__main__":
+    messages = get_messagedata(r"C:\Users\Benji.Aird\Downloads\WhatsApp Chat with Lumpsuckers & Slimeheads.txt")
+    hours = get_average_busiest_hour(messages)
+    print("done")

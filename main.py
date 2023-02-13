@@ -10,7 +10,7 @@ def main(file_path):
     post_counts = messages.get_post_counts(messagedata)
     hour_counts = messages.get_average_busiest_hour(messagedata)
     # visualisation
-    post_count_plot = visualisation.get_bar_graph(post_counts.keys(), post_counts.values(), "Post Counts")
+    post_count_plot = visualisation.get_bar_graph(messages_per_day.keys(), messages_per_day.values(), "Posts Per Day")
     post_count_plot.show()
     print("done")
 
